@@ -4,6 +4,7 @@
 #define CHIAKI_CONTROLLERMANAGER_H
 
 #include <chiaki/controller.h>
+#include <chiaki/orientation.h>
 
 #include <QObject>
 #include <QSet>
@@ -27,7 +28,7 @@ class ControllerManager : public QObject
 		QSet<SDL_JoystickID> available_controllers;
 #endif
 		QMap<int, Controller *> open_controllers;
-
+		
 		void ControllerClosed(Controller *controller);
 
 	private slots:
@@ -61,6 +62,7 @@ class Controller : public QObject
 
 		ControllerManager *manager;
 		int id;
+		ChiakiOrientationTracker orient_tracker;
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 		SDL_GameController *controller;
