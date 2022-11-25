@@ -36,7 +36,8 @@ set(SDL2_LIBRARIES \"$SDL_ROOT/lib/x64/SDL2.lib\")
 set(SDL2_LIBDIR \"$SDL_ROOT/lib/x64\")" > "$SDL_ROOT/SDL2Config.cmake" || exit 1
 
 mkdir protoc && cd protoc || exit 1
-wget https://github.com/protocolbuffers/protobuf/releases/download/v3.9.1/protoc-3.9.1-win64.zip && 7z x protoc-3.9.1-win64.zip || exit 1
+# wget https://github.com/protocolbuffers/protobuf/releases/download/v3.9.1/protoc-3.9.1-win64.zip && 7z x protoc-3.9.1-win64.zip || exit 1
+wget https://github.com/protocolbuffers/protobuf/releases/download/v3.20.2/protoc-3.20.2-win64.zip && 7z x protoc-3.20.2-win64 || exit 1
 cd .. || exit 1
 export PATH="$PWD/protoc/bin:$PATH" || exit 1
 
