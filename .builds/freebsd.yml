@@ -7,17 +7,17 @@ sources:
 packages:
   - cmake
   - protobuf
-  - py38-protobuf
+  - py39-protobuf
   - opus
-  - qt5-core
-  - qt5-qmake
-  - qt5-buildtools
-  - qt5-gui
-  - qt5-widgets
-  - qt5-concurrent
-  - qt5-svg
-  - qt5-opengl
-  - qt5-multimedia
+  - qt6-core
+  - qt6-qmake
+  - qt6-buildtools
+  - qt6-gui
+  - qt6-widgets
+  - qt6-concurrent
+  - qt6-svg
+  - qt6-opengl
+  - qt6-multimedia
   - ffmpeg
   - sdl2
 

@@ -9,4 +9,3 @@ docker run \
     --entrypoint /opt/devkitpro/tools/bin/nxlink \
     thestr4ng3r/chiaki-build-switch \
     "$@" -s /build/chiaki/build_switch/switch/chiaki.nro
-
