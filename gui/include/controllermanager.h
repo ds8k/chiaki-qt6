@@ -4,7 +4,6 @@
 #define CHIAKI_CONTROLLERMANAGER_H
 
 #include <chiaki/controller.h>
-#include <chiaki/orientation.h>
 
 #include <QObject>
 #include <QSet>
@@ -32,13 +31,15 @@ class ControllerManager : public QObject
 		QSet<SDL_JoystickID> available_controllers;
 #endif
 		QMap<int, Controller *> open_controllers;
-		
+
 		void ControllerClosed(Controller *controller);
 
 	private slots:
 		void UpdateAvailableControllers();
 		void HandleEvents();
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 		void ControllerEvent(SDL_Event evt);
+#endif
 
 	public:
 		static ControllerManager *GetInstance();
@@ -62,11 +63,15 @@ class Controller : public QObject
 	private:
 		Controller(int device_id, ControllerManager *manager);
 
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 		void UpdateState(SDL_Event event);
 		bool HandleButtonEvent(SDL_ControllerButtonEvent event);
 		bool HandleAxisEvent(SDL_ControllerAxisEvent event);
+#if SDL_VERSION_ATLEAST(2, 0, 14)
 		bool HandleSensorEvent(SDL_ControllerSensorEvent event);
 		bool HandleTouchpadEvent(SDL_ControllerTouchpadEvent event);
+#endif
+#endif
 
 		ControllerManager *manager;
 		int id;
@@ -125,6 +130,5 @@ typedef struct
     Uint8 ucLedGreen;                   /* 45 */
     Uint8 ucLedBlue;                    /* 46 */
 } DS5EffectsState_t;
-
 
 #endif // CHIAKI_CONTROLLERMANAGER_H

@@ -9,8 +9,7 @@
 #include <QKeyEvent>
 #include <QAudioOutput>
 #include <QAudioDevice>
-#include <QMediaDevices>
-#include <QAudioSink>
+
 
 #include <cstring>
 #include <chiaki/session.h>
@@ -107,7 +106,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 
 	audio_out_device_info = QMediaDevices::defaultAudioOutput();
 	CHIAKI_LOGV(log.GetChiakiLog(), "Selected default audio Device: %s", qPrintable(audio_out_device_info.description()));
-    
+
 	if(!connect_info.audio_out_device.isEmpty())
 	{
 		for(QAudioDevice di : QMediaDevices::audioOutputs())
@@ -162,7 +161,8 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	chiaki_opus_decoder_get_sink(&opus_decoder, &audio_sink);
 	chiaki_session_set_audio_sink(&session, &audio_sink);
 
-	if (connect_info.enable_dualsense) {
+	if(connect_info.enable_dualsense)
+	{
 		ChiakiAudioSink haptics_sink;
 		haptics_sink.user = this;
 		haptics_sink.frame_cb = HapticsFrameCb;
@@ -206,7 +206,8 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #endif
 
 	key_map = connect_info.key_map;
-	if (connect_info.enable_dualsense) {
+	if(connect_info.enable_dualsense)
+	{
 		InitHaptics();
 	}
 	UpdateGamepads();
@@ -236,12 +237,12 @@ StreamSession::~StreamSession()
 		chiaki_ffmpeg_decoder_fini(ffmpeg_decoder);
 		delete ffmpeg_decoder;
 	}
-	if (haptics_output > 0)
+	if(haptics_output > 0)
 	{
 		SDL_CloseAudioDevice(haptics_output);
 		haptics_output = 0;
 	}
-	if (haptics_resampler_buf)
+	if(haptics_resampler_buf)
 	{
 		free(haptics_resampler_buf);
 		haptics_resampler_buf = nullptr;
@@ -350,10 +351,8 @@ void StreamSession::UpdateGamepads()
 		{
 			CHIAKI_LOGI(log.GetChiakiLog(), "Controller %d disconnected", controller->GetDeviceID());
 			controllers.remove(controller_id);
-			if (controller->IsDualSense())
-			{
+			if(controller->IsDualSense())
 				DisconnectHaptics();
-			}
 			delete controller;
 		}
 	}
@@ -372,10 +371,10 @@ void StreamSession::UpdateGamepads()
 			CHIAKI_LOGI(log.GetChiakiLog(), "Controller %d opened: \"%s\"", controller_id, controller->GetName().toLocal8Bit().constData());
 			connect(controller, &Controller::StateChanged, this, &StreamSession::SendFeedbackState);
 			controllers[controller_id] = controller;
-			if (controller->IsDualSense())
+			if(controller->IsDualSense())
 			{
 				// Connect haptics audio device with a delay to give the sound system time to set up
-				QTimer::singleShot(250, this, &StreamSession::ConnectHaptics);
+				QTimer::singleShot(1000, this, &StreamSession::ConnectHaptics);
 			}
 		}
 	}
@@ -396,10 +395,8 @@ void StreamSession::SendFeedbackState()
 
 	for(auto controller : controllers)
 	{
-		state = controller->GetState();
-		break;
-		// auto controller_state = controller->GetState();
-		// chiaki_controller_state_or(&state, &state, &controller_state);
+		auto controller_state = controller->GetState();
+		chiaki_controller_state_or(&state, &state, &controller_state);
 	}
 
 	chiaki_controller_state_or(&state, &state, &keyboard_state);
@@ -409,20 +406,22 @@ void StreamSession::SendFeedbackState()
 void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 {
 	delete audio_output;
-	QAudioSink* audio_output = nullptr;
+	QAudioSink*	audio_output = nullptr;
 	audio_io = nullptr;
 
 	CHIAKI_LOGV(log.GetChiakiLog(), "---START AUDIO INIT---");
 
 	CHIAKI_LOGV(log.GetChiakiLog(), "Selected audio device: %s.",
 					qPrintable(audio_out_device_info.description()));
+	CHIAKI_LOGV(log.GetChiakiLog(), "Could also be : %s.",
+					qPrintable(QMediaDevices::defaultAudioOutput().description()));
 
 	QAudioFormat audio_format = audio_out_device_info.preferredFormat();
 	CHIAKI_LOGV(log.GetChiakiLog(), "Audio (preferred) Format: %i channels @ %i Hz in format %i.",
-				audio_format.channelCount(),
-				audio_format.sampleRate(),
-				audio_format.sampleFormat());
-	
+			audio_format.channelCount(),
+			audio_format.sampleRate(),
+			audio_format.sampleFormat());
+
 	QAudioFormat desired_format;
 	desired_format.setChannelCount(2);
 	desired_format.setSampleFormat(QAudioFormat::Int16);
@@ -433,7 +432,7 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 				desired_format.sampleRate(),
 				desired_format.sampleFormat());
 
-	if(audio_out_device_info.isFormatSupported(desired_format))
+	if(audio_out_device_info.isFormatSupported(audio_format))
 	{
 		audio_format = desired_format;
 	}
@@ -450,13 +449,13 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 	audio_output = new QAudioSink(audio_out_device_info, audio_format, this);
 	audio_output->setBufferSize(audio_buffer_size);
 	audio_io = audio_output->start();
-	
+
 	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device %s opened with %u channels @ %u Hz, buffer size %u.",
 				qPrintable(audio_out_device_info.description()),
 				audio_format.channelCount(),
 				audio_format.sampleRate(),
 				audio_format.sampleFormat());
-	
+
 	CHIAKI_LOGV(log.GetChiakiLog(), "---END AUDIO INIT---");
 }
 
@@ -469,13 +468,14 @@ void StreamSession::InitHaptics()
 	SDL_SetHint("SDL_AUDIODRIVER", "pipewire");
 #endif
 
-	if (SDL_Init(SDL_INIT_AUDIO) < 0)
+	if(SDL_Init(SDL_INIT_AUDIO) < 0)
 	{
 		CHIAKI_LOGE(log.GetChiakiLog(), "Could not initialize SDL Audio for haptics output: %s", SDL_GetError());
 		return;
 	}
+
 #ifdef Q_OS_LINUX
-	if (!strstr(SDL_GetCurrentAudioDriver(), "pipewire"))
+	if(!strstr(SDL_GetCurrentAudioDriver(), "pipewire"))
 	{
 		CHIAKI_LOGW(
 			log.GetChiakiLog(),
@@ -492,7 +492,7 @@ void StreamSession::InitHaptics()
 
 void StreamSession::DisconnectHaptics()
 {
-	if (this->haptics_output > 0)
+	if(this->haptics_output > 0)
 	{
 		SDL_CloseAudioDevice(haptics_output);
 		this->haptics_output = 0;
@@ -501,7 +501,7 @@ void StreamSession::DisconnectHaptics()
 
 void StreamSession::ConnectHaptics()
 {
-	if (this->haptics_output > 0)
+	if(this->haptics_output > 0)
 	{
 		CHIAKI_LOGW(this->log.GetChiakiLog(), "Haptics already connected to an attached DualSense controller, ignoring additional controllers.");
 		return;
@@ -516,15 +516,13 @@ void StreamSession::ConnectHaptics()
 	want.callback = NULL;
 
 	const char *device_name = nullptr;
-	for (int i=0; i < SDL_GetNumAudioDevices(0); i++)
+	for(int i=0; i < SDL_GetNumAudioDevices(0); i++)
 	{
 		device_name = SDL_GetAudioDeviceName(i, 0);
-		if (!device_name || !strstr(device_name, DUALSENSE_AUDIO_DEVICE_NEEDLE))
-		{
+		if(!device_name || !strstr(device_name, DUALSENSE_AUDIO_DEVICE_NEEDLE))
 			continue;
-		}
 		haptics_output = SDL_OpenAudioDevice(device_name, 0, &want, &have, 0);
-		if (haptics_output == 0)
+		if(haptics_output == 0)
 		{
 			CHIAKI_LOGE(log.GetChiakiLog(), "Could not open SDL Audio Device %s for haptics output: %s", device_name, SDL_GetError());
 			continue;
@@ -533,7 +531,6 @@ void StreamSession::ConnectHaptics()
 		CHIAKI_LOGI(log.GetChiakiLog(), "Haptics Audio Device '%s' opened with %d channels @ %d Hz, buffer size %u (driver=%s)", device_name, have.channels, have.freq, have.size, SDL_GetCurrentAudioDriver());
 		return;
 	}
-
 	CHIAKI_LOGW(log.GetChiakiLog(), "DualSense features were enabled and a DualSense is connected, but could not find the DualSense audio device!");
 	return;
 }
@@ -561,13 +558,13 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		SDL_memcpy(haptics_resampler_buf + (i * 2) + 4, buf + i, 4);
 	}
 	// Resample to 48kHZ
-	if (SDL_ConvertAudio(&cvt) != 0)
+	if(SDL_ConvertAudio(&cvt) != 0)
 	{
 		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to resample haptics audio: %s", SDL_GetError());
 		return;
 	}
 
-	if (SDL_QueueAudio(haptics_output, cvt.buf, cvt.len_cvt) < 0)
+	if(SDL_QueueAudio(haptics_output, cvt.buf, cvt.len_cvt) < 0)
 	{
 		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to submit haptics audio to device: %s", SDL_GetError());
 		return;
@@ -736,9 +733,8 @@ class StreamSessionPrivate
 		}
 
 		static void PushAudioFrame(StreamSession *session, int16_t *buf, size_t samples_count)	{ session->PushAudioFrame(buf, samples_count); }
-		static void Event(StreamSession *session, ChiakiEvent *event)							{ session->Event(event); }
 		static void PushHapticsFrame(StreamSession *session, uint8_t *buf, size_t buf_size)	{ session->PushHapticsFrame(buf, buf_size); }
-
+		static void Event(StreamSession *session, ChiakiEvent *event)							{ session->Event(event); }
 #if CHIAKI_GUI_ENABLE_SETSU
 		static void HandleSetsuEvent(StreamSession *session, SetsuEvent *event)					{ session->HandleSetsuEvent(event); }
 #endif

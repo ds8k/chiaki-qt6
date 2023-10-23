@@ -71,7 +71,11 @@ int real_main(int argc, char *argv[])
 
 	QApplication app(argc, argv);
 
+#ifdef Q_OS_MACOS
+	QApplication::setWindowIcon(QIcon(":/icons/chiaki_macos.svg"));
+#else
 	QApplication::setWindowIcon(QIcon(":/icons/chiaki.svg"));
+#endif
 
 	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 
@@ -176,7 +180,6 @@ int real_main(int argc, char *argv[])
 				return 1;
 			}
 		}
-
 		if ((parser.isSet(stretch_option) && (parser.isSet(zoom_option) || parser.isSet(fullscreen_option))) || (parser.isSet(zoom_option) && parser.isSet(fullscreen_option)))
 		{
 			printf("Must choose between fullscreen, zoom or stretch option.");

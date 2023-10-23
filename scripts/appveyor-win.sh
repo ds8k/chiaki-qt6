@@ -32,8 +32,8 @@ cd ../..
 
 wget https://download.firedaemon.com/FireDaemon-OpenSSL/openssl-1.1.1s.zip && 7z x openssl-1.1.*.zip
 
-wget https://www.libsdl.org/release/SDL2-devel-2.28.4-VC.zip && 7z x SDL2-devel-2.28.4-VC.zip
-export SDL_ROOT="$BUILD_ROOT/SDL2-2.28.4"
+wget https://www.libsdl.org/release/SDL2-devel-2.26.2-VC.zip && 7z x SDL2-devel-2.26.2-VC.zip
+export SDL_ROOT="$BUILD_ROOT/SDL2-2.26.2"
 export SDL_ROOT=${SDL_ROOT//[\\]//}
 echo "set(SDL2_INCLUDE_DIRS \"$SDL_ROOT/include\")
 set(SDL2_LIBRARIES \"$SDL_ROOT/lib/x64/SDL2.lib\")
@@ -41,14 +41,14 @@ set(SDL2_LIBDIR \"$SDL_ROOT/lib/x64\")
 include($SDL_ROOT/cmake/sdl2-config-version.cmake)" > "$SDL_ROOT/SDL2Config.cmake"
 
 mkdir protoc && cd protoc
-wget https://github.com/protocolbuffers/protobuf/releases/download/v3.20.2/protoc-3.20.2-win64.zip && 7z x protoc-3.20.2-win64.zip
+wget https://github.com/protocolbuffers/protobuf/releases/download/v3.9.1/protoc-3.9.1-win64.zip && 7z x protoc-3.9.1-win64.zip
 cd ..
 export PATH="$PWD/protoc/bin:$PATH"
 
 PYTHON="C:/Python37/python.exe"
-"$PYTHON" -m pip install protobuf==3.20.2
+"$PYTHON" -m pip install protobuf==3.19.5
 
-QT_PATH="C:/Qt/6.4/msvc2019_64"
+QT_PATH="C:/Qt/5.15/msvc2019_64"
 
 COPY_DLLS="$PWD/openssl-1.1/x64/bin/libcrypto-1_1-x64.dll $PWD/openssl-1.1/x64/bin/libssl-1_1-x64.dll $SDL_ROOT/lib/x64/SDL2.dll"
 

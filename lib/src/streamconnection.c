@@ -173,7 +173,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	{
 		CHIAKI_LOGE(session->log, "StreamConnection failed to initialize Haptics Receiver");
 		err = CHIAKI_ERR_UNKNOWN;
-		goto err_haptics_receiver;
+		goto err_audio_receiver;
 	}
 
 	stream_connection->video_receiver = chiaki_video_receiver_new(session, &stream_connection->packet_stats);
@@ -181,7 +181,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	{
 		CHIAKI_LOGE(session->log, "StreamConnection failed to initialize Video Receiver");
 		err = CHIAKI_ERR_UNKNOWN;
-		goto err_video_receiver;
+		goto err_haptics_receiver;
 	}
 
 	stream_connection->state = STATE_TAKION_CONNECT;
@@ -433,6 +433,7 @@ static void stream_connection_takion_data_rumble(ChiakiStreamConnection *stream_
 	event.rumble.right = buf[2];
 	chiaki_session_send_event(stream_connection->session, &event);
 }
+
 
 static void stream_connection_takion_data_trigger_effects(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
 {
@@ -884,7 +885,6 @@ static ChiakiErrorCode stream_connection_send_controller_connection(ChiakiStream
 	buf_size = stream.bytes_written;
 	return chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, buf, buf_size, NULL);
 }
-
 
 static ChiakiErrorCode stream_connection_send_streaminfo_ack(ChiakiStreamConnection *stream_connection)
 {

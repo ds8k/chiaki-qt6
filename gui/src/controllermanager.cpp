@@ -6,7 +6,6 @@
 #include <QMessageBox>
 #include <QByteArray>
 #include <QTimer>
-#include <chrono>
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 #include <SDL.h>
@@ -59,48 +58,25 @@ static QSet<QString> chiaki_motion_controller_guids({
 	"030000004c050000cc09000000010000",
 	"03000000c01100000140000000010000",
 	// Sony on Windows
-	// Updated from https://github.com/gabomdq/SDL_GameControllerDB
-	"030000008f0e00000910000000000000",
-	"03000000317300000100000000000000",
-	"03000000120c00000807000000000000",
-	"03000000120c0000111e000000000000",
-	"03000000120c0000121e000000000000",
-	"03000000120c0000130e000000000000",
-	"03000000120c0000150e000000000000",
-	"03000000120c0000180e000000000000",
-	"03000000120c0000181e000000000000",
-	"03000000120c0000191e000000000000",
-	"03000000120c00001e0e000000000000",
-	"03000000120c0000a957000000000000",
-	"03000000120c0000aa57000000000000",
-	"03000000120c0000f10e000000000000",
-	"03000000120c0000f21c000000000000",
-	"03000000120c0000f31c000000000000",
-	"03000000120c0000f41c000000000000",
-	"03000000120c0000f51c000000000000",
-	"03000000120c0000f70e000000000000",
-	"03000000120e0000120c000000000000",
-	"03000000160e0000120c000000000000",
-	"030000001a1e0000120c000000000000",
 	"030000004c050000a00b000000000000",
 	"030000004c050000c405000000000000",
 	"030000004c050000cc09000000000000",
-	"030000004c050000e60c000000000000",
 	"03000000250900000500000000000000",
 	"030000004c0500006802000000000000",
 	"03000000632500007505000000000000",
 	"03000000888800000803000000000000",
-	"030000008f0e00001431000000000000"
+	"030000008f0e00001431000000000000",
+});
+
+static QSet<QPair<int16_t, int16_t>> chiaki_dualsense_controller_ids({
+	// in format (vendor id, product id)
+	QPair<int16_t, int16_t>(0x054c, 0x0ce6), // DualSense controller
+	QPair<int16_t, int16_t>(0x054c, 0x0df2), // DualSense Edge controller
 });
 
 static ControllerManager *instance = nullptr;
 
 #define UPDATE_INTERVAL_MS 4
-
-static float inv_sqrt(float x)
-{
-	return 1.0f / sqrt(x);
-}
 
 ControllerManager *ControllerManager::GetInstance()
 {
@@ -114,9 +90,15 @@ ControllerManager::ControllerManager(QObject *parent)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	SDL_SetMainReady();
+#ifdef SDL_HINT_JOYSTICK_HIDAPI_PS4_RUMBLE
 	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS4_RUMBLE, "1");
+#endif
+#ifdef SDL_HINT_JOYSTICK_HIDAPI_PS5_RUMBLE
 	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS5_RUMBLE, "1");
+#endif
+#ifdef SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS
 	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
+#endif
 	if(SDL_Init(SDL_INIT_GAMECONTROLLER) < 0)
 	{
 		const char *err = SDL_GetError();
@@ -190,10 +172,12 @@ void ControllerManager::HandleEvents()
 			case SDL_CONTROLLERBUTTONUP:
 			case SDL_CONTROLLERBUTTONDOWN:
 			case SDL_CONTROLLERAXISMOTION:
+#if not defined(CHIAKI_ENABLE_SETSU) and SDL_VERSION_ATLEAST(2, 0, 14)
+			case SDL_CONTROLLERSENSORUPDATE:
 			case SDL_CONTROLLERTOUCHPADDOWN:
 			case SDL_CONTROLLERTOUCHPADMOTION:
 			case SDL_CONTROLLERTOUCHPADUP:
-			case SDL_CONTROLLERSENSORUPDATE:
+#endif
 				ControllerEvent(event);
 				break;
 		}
@@ -201,6 +185,7 @@ void ControllerManager::HandleEvents()
 #endif
 }
 
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 void ControllerManager::ControllerEvent(SDL_Event event)
 {
 	int device_id;
@@ -213,6 +198,7 @@ void ControllerManager::ControllerEvent(SDL_Event event)
 		case SDL_CONTROLLERAXISMOTION:
 			device_id = event.caxis.which;
 			break;
+#if SDL_VERSION_ATLEAST(2, 0, 14)
 		case SDL_CONTROLLERSENSORUPDATE:
 			device_id = event.csensor.which;
 			break;
@@ -221,6 +207,7 @@ void ControllerManager::ControllerEvent(SDL_Event event)
 		case SDL_CONTROLLERTOUCHPADUP:
 			device_id = event.ctouchpad.which;
 			break;
+#endif
 		default:
 			return;
 	}
@@ -228,6 +215,7 @@ void ControllerManager::ControllerEvent(SDL_Event event)
 		return;
 	open_controllers[device_id]->UpdateState(event);
 }
+#endif
 
 QSet<int> ControllerManager::GetAvailableControllers()
 {
@@ -252,7 +240,8 @@ void ControllerManager::ControllerClosed(Controller *controller)
 	open_controllers.remove(controller->GetDeviceID());
 }
 
-Controller::Controller(int device_id, ControllerManager *manager): QObject(manager), is_dualsense(false)
+Controller::Controller(int device_id, ControllerManager *manager)
+	: QObject(manager), is_dualsense(false)
 {
 	this->id = device_id;
 	this->manager = manager;
@@ -266,14 +255,14 @@ Controller::Controller(int device_id, ControllerManager *manager): QObject(manag
 		if(SDL_JoystickGetDeviceInstanceID(i) == device_id)
 		{
 			controller = SDL_GameControllerOpen(i);
-			SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS4_RUMBLE, "1");
-			SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS5, "1");
-			SDL_GameControllerSetSensorEnabled(controller, SDL_SENSOR_ACCEL, SDL_TRUE);
-			SDL_GameControllerSetSensorEnabled(controller, SDL_SENSOR_GYRO, SDL_TRUE);
-			auto guid = SDL_JoystickGetGUID(SDL_GameControllerGetJoystick(controller));
-			char guid_str[256];
-			SDL_JoystickGetGUIDString(guid, guid_str, sizeof(guid_str));
-			is_dualsense = chiaki_dualsense_controller_guids.contains(guid_str);
+#if SDL_VERSION_ATLEAST(2, 0, 14)
+			if(SDL_GameControllerHasSensor(controller, SDL_SENSOR_ACCEL))
+				SDL_GameControllerSetSensorEnabled(controller, SDL_SENSOR_ACCEL, SDL_TRUE);
+			if(SDL_GameControllerHasSensor(controller, SDL_SENSOR_GYRO))
+				SDL_GameControllerSetSensorEnabled(controller, SDL_SENSOR_GYRO, SDL_TRUE);
+#endif
+			auto controller_id = QPair<int16_t, int16_t>(SDL_GameControllerGetVendor(controller), SDL_GameControllerGetProduct(controller));
+			is_dualsense = chiaki_dualsense_controller_ids.contains(controller_id);
 			break;
 		}
 	}
@@ -323,7 +312,7 @@ void Controller::UpdateState(SDL_Event event)
 		default:
 			return;
 
-	}	
+	}
 	emit StateChanged();
 }
 
@@ -524,7 +513,7 @@ void Controller::SetRumble(uint8_t left, uint8_t right)
 
 void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right)
 {
-#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+#if defined(CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER) && SDL_VERSION_ATLEAST(2, 0, 16)
 	if(!is_dualsense || !controller)
 		return;
 	DS5EffectsState_t state;

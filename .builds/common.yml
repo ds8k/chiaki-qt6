@@ -1,5 +1,5 @@
 
-image: alpine/edge # on edge for https://gitlab.alpinelinux.org/alpine/aports/-/issues/13287
+image: alpine/latest
 
 sources:
   - https://git.sr.ht/~thestr4ng3r/chiaki
@@ -11,9 +11,9 @@ packages:
   - py3-protobuf
   - py3-setuptools
   - opus-dev
-  - qt6-qtbase-dev
-  - qt6-qtsvg-dev
-  - qt6-qtmultimedia-dev
+  - qt5-qtbase-dev
+  - qt5-qtsvg-dev
+  - qt5-qtmultimedia-dev
   - ffmpeg-dev
   - sdl2-dev
   - podman

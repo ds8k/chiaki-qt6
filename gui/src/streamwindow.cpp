@@ -132,6 +132,11 @@ void StreamWindow::keyReleaseEvent(QKeyEvent *event)
 		session->HandleKeyboardEvent(event);
 }
 
+void StreamWindow::Quit()
+{
+	close();
+}
+
 void StreamWindow::mousePressEvent(QMouseEvent *event)
 {
 	if(session && session->HandleMouseEvent(event))
@@ -203,11 +208,6 @@ void StreamWindow::SessionQuit(ChiakiQuitReason reason, const QString &reason_st
 			m += "\n" + tr("Reason") + ": \"" + reason_str + "\"";
 		QMessageBox::critical(this, tr("Session has quit"), m);
 	}
-	close();
-}
-
-void StreamWindow::Quit()
-{
 	close();
 }
 

@@ -105,7 +105,6 @@ static inline bool chiaki_quit_reason_is_error(ChiakiQuitReason reason)
 	return reason != CHIAKI_QUIT_REASON_STOPPED && reason != CHIAKI_QUIT_REASON_STREAM_CONNECTION_REMOTE_SHUTDOWN;
 }
 
-
 typedef struct chiaki_quit_event_t
 {
 	ChiakiQuitReason reason;
